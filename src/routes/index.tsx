@@ -1,19 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import Navbar from "@/components/Navbar";
+import HeroSection from "@/components/HeroSection";
+import VideoVisionSection from "@/components/VideoVisionSection";
+import ProductShowcase from "@/components/ProductShowcase";
+import AchievementsSection from "@/components/AchievementsSection";
+import CertificationsMarquee from "@/components/CertificationsMarquee";
+import Footer from "@/components/Footer";
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "Capabloo — Rebuilding Abilities" },
+      {
+        name: "description",
+        content:
+          "Custom 3D-printed prosthetic solutions designed for your exact anatomy. Maximum comfort, precision engineering, and a new standard in mobility.",
+      },
+      { property: "og:title", content: "Capabloo — Rebuilding Abilities" },
+      {
+        property: "og:description",
+        content:
+          "Custom 3D-printed prosthetic solutions designed for your exact anatomy.",
+      },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function Index() {
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="bg-background">
+      <Navbar />
+      <HeroSection />
+      <VideoVisionSection />
+      <ProductShowcase />
+      <AchievementsSection />
+      <CertificationsMarquee />
+      <Footer />
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
