@@ -69,7 +69,7 @@ const wordVariants = {
     y: "0%",
     opacity: 1,
     rotateX: 0,
-    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -78,7 +78,7 @@ const subVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: "easeOut", delay: 1.2 },
+    transition: { duration: 0.8, ease: "easeOut" as const, delay: 1.2 },
   },
 };
 
