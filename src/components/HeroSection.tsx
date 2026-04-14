@@ -1,57 +1,133 @@
 import { useRef, useMemo, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { MeshTransmissionMaterial, Float, Environment } from "@react-three/drei";
 import { motion } from "framer-motion";
 import * as THREE from "three";
 
-function KineticSculpture() {
-  const meshRef = useRef<THREE.Mesh>(null);
+const PARTICLE_COUNT = 3000;
+
+function ParticleField() {
+  const pointsRef = useRef<THREE.Points>(null);
   const { pointer } = useThree();
 
-  const geometry = useMemo(() => {
-    const geo = new THREE.TorusKnotGeometry(1.8, 0.6, 200, 32, 2, 3);
-    return geo;
+  const { positions, basePositions, colors, sizes } = useMemo(() => {
+    const pos = new Float32Array(PARTICLE_COUNT * 3);
+    const base = new Float32Array(PARTICLE_COUNT * 3);
+    const col = new Float32Array(PARTICLE_COUNT * 3);
+    const sz = new Float32Array(PARTICLE_COUNT);
+
+    const orangeColor = new THREE.Color("#f97316");
+    const blueColor = new THREE.Color("#3b82f6");
+    const whiteColor = new THREE.Color("#e2e8f0");
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const i3 = i * 3;
+      // Distribute particles in a wide, flowing wave shape
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 2.5 + Math.random() * 2;
+
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = (Math.random() - 0.5) * 3;
+      const z = r * Math.sin(phi) * Math.sin(theta) * 0.6;
+
+      pos[i3] = x;
+      pos[i3 + 1] = y;
+      pos[i3 + 2] = z;
+      base[i3] = x;
+      base[i3 + 1] = y;
+      base[i3 + 2] = z;
+
+      // Gradient colors: orange → blue → white
+      const t = Math.random();
+      const color = t < 0.4
+        ? orangeColor.clone().lerp(blueColor, t / 0.4)
+        : t < 0.7
+          ? blueColor.clone().lerp(whiteColor, (t - 0.4) / 0.3)
+          : whiteColor.clone();
+      col[i3] = color.r;
+      col[i3 + 1] = color.g;
+      col[i3 + 2] = color.b;
+
+      sz[i] = Math.random() * 3 + 1;
+    }
+
+    return { positions: pos, basePositions: base, colors: col, sizes: sz };
   }, []);
 
-  useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.x += delta * 0.08;
-    meshRef.current.rotation.y += delta * 0.12;
-    meshRef.current.rotation.x += (pointer.y * 0.3 - meshRef.current.rotation.x) * 0.02;
-    meshRef.current.rotation.z += (pointer.x * 0.3 - meshRef.current.rotation.z) * 0.02;
+  useFrame(({ clock }) => {
+    if (!pointsRef.current) return;
+    const geo = pointsRef.current.geometry;
+    const posAttr = geo.getAttribute("position");
+    const arr = posAttr.array as Float32Array;
+    const time = clock.getElapsedTime();
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const i3 = i * 3;
+      const bx = basePositions[i3];
+      const by = basePositions[i3 + 1];
+      const bz = basePositions[i3 + 2];
+
+      // Flowing wave motion
+      const wave = Math.sin(bx * 0.5 + time * 0.4) * 0.3 +
+        Math.cos(bz * 0.7 + time * 0.3) * 0.2;
+
+      // Cursor influence
+      const dx = pointer.x * 3 - bx;
+      const dy = pointer.y * 2 - by;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const influence = Math.max(0, 1 - dist / 3) * 0.5;
+
+      arr[i3] = bx + dx * influence * 0.15;
+      arr[i3 + 1] = by + wave + dy * influence * 0.15;
+      arr[i3 + 2] = bz + Math.sin(time * 0.2 + i * 0.01) * 0.15;
+    }
+
+    posAttr.needsUpdate = true;
+
+    // Gentle overall rotation
+    pointsRef.current.rotation.y = time * 0.03;
   });
 
   return (
-    <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
-      <mesh ref={meshRef} geometry={geometry} scale={1.1}>
-        <MeshTransmissionMaterial
-          backside
-          samples={6}
-          thickness={0.5}
-          chromaticAberration={0.15}
-          anisotropy={0.3}
-          distortion={0.4}
-          distortionScale={0.5}
-          temporalDistortion={0.2}
-          ior={1.5}
-          color="#f97316"
-          roughness={0.1}
-          toneMapped={true}
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={PARTICLE_COUNT}
+          array={positions}
+          itemSize={3}
         />
-      </mesh>
-    </Float>
+        <bufferAttribute
+          attach="attributes-color"
+          count={PARTICLE_COUNT}
+          array={colors}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-size"
+          count={PARTICLE_COUNT}
+          array={sizes}
+          itemSize={1}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.04}
+        vertexColors
+        transparent
+        opacity={0.8}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </points>
   );
 }
 
 function Scene() {
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-      <directionalLight position={[-3, 2, -4]} intensity={0.6} color="#3b82f6" />
-      <spotLight position={[0, 8, 0]} intensity={0.8} color="#f97316" angle={0.5} penumbra={0.8} />
-      <KineticSculpture />
-      <Environment preset="studio" environmentIntensity={0.4} />
+      <ambientLight intensity={0.3} />
+      <ParticleField />
     </>
   );
 }
