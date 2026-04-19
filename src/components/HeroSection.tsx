@@ -111,7 +111,7 @@ export default function HeroSection() {
               <div key={word} className="overflow-hidden">
                 <motion.span
                   variants={wordVariants}
-                  className="inline-block text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-display font-bold tracking-tight text-foreground"
+                  className="inline-block text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-display font-bold tracking-tight text-secondary"
                   style={{ perspective: "600px" }}
                 >
                   {word === "Abilities" ? (
